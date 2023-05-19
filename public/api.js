@@ -1,17 +1,9 @@
 import fs from "fs/promises";
-import { input, apps } from "./meta.js";
 import { auth } from "./meta.js";
+import { apps } from "./meta.js";
 
 let flows;
 let runningFlows = {};
-
-const execute = async (pwd, app, method, args) => {
-  for (let argIndex in args) {
-    args[argIndex] = await input.resolveInput(pwd, args[argIndex]);
-  }
-
-  return await apps.execute(pwd, app, method, args);
-};
 
 const loadFlows = async () => {
   flows = JSON.parse(await fs.readFile("flows.json", "utf8")).flows;
@@ -34,7 +26,7 @@ const runFlowId = async (pwd, flow, id) => {
   runningFlows[id] = flowStatus;
   for (let action of flow.actions) {
     flowStatus.actions.push(
-      await execute(pwd, action.appName, action.method, action.arguments)
+      await apps.execute(pwd, action.appName, action.method, action.arguments)
     );
   }
 
