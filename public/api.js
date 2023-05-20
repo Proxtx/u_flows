@@ -15,7 +15,7 @@ const saveFlows = async () => {
   await fs.writeFile("flows.json", JSON.stringify(currentFlows, null, 2));
 };
 
-const runFlowId = async (pwd, flow, id) => {
+const runFlowId = async (pwd, flow, args, id) => {
   if (!(await auth(pwd))) return;
 
   let flowStatus = {
@@ -24,16 +24,31 @@ const runFlowId = async (pwd, flow, id) => {
     actions: [],
   };
   runningFlows[id] = flowStatus;
+
+  overwriteArgInputs(flow, args);
   for (let action of flow.actions) {
     flowStatus.actions.push(
       await apps.execute(pwd, action.appName, action.method, action.arguments)
     );
   }
 
+  let lastAction = flowStatus.actions[flowStatus.actions.length - 1];
   delete runningFlows[id];
+  return lastAction;
 };
 
-export const runFlow = async (pwd, name) => {
+const overwriteArgInputs = (object, args) => {
+  for (let k in object) {
+    let o = object[k];
+    if (o.flowArgumentOverwrite) {
+      o.input = args[o.index];
+    } else if (typeof o == "object") {
+      overwriteArgInputs(o, args);
+    }
+  }
+};
+
+export const runFlow = async (pwd, name, args = []) => {
   if (!(await auth(pwd))) return;
   let id = Math.floor(Math.random() * 10000);
   runningFlows[id] = {
@@ -41,15 +56,19 @@ export const runFlow = async (pwd, name) => {
     flow: flows[name],
     actions: [],
   };
-  runFlowId(pwd, flows[name], id);
+  runFlowId(pwd, JSON.parse(JSON.stringify(flows[name])), args, id);
   return id;
 };
 
-export const runFlowSync = async (pwd, name) => {
+export const runFlowSync = async (pwd, name, args = []) => {
   if (!(await auth(pwd))) return;
   let id = Math.floor(Math.random() * 10000);
-  await runFlowId(pwd, flows[name], id);
-  return id;
+  return await runFlowId(
+    pwd,
+    JSON.parse(JSON.stringify(flows[name])),
+    args,
+    id
+  );
 };
 
 export const setFlow = async (pwd, name, flow) => {
@@ -72,6 +91,11 @@ export const deleteFlow = async (pwd, name) => {
 export const listFlows = async (pwd) => {
   if (!(await auth(pwd))) return;
   return Object.keys(flows);
+};
+
+export const getFlowArguments = async (pwd, name) => {
+  if (!(await auth(pwd))) return;
+  return flows[name].arguments || [];
 };
 
 export const flowStatus = async (pwd, id) => {
