@@ -17,24 +17,27 @@ const saveFlows = async () => {
 
 const runFlowId = async (pwd, flow, args, id) => {
   if (!(await auth(pwd))) return;
+  try {
+    let flowStatus = {
+      start: Date.now(),
+      flow,
+      actions: [],
+    };
+    runningFlows[id] = flowStatus;
 
-  let flowStatus = {
-    start: Date.now(),
-    flow,
-    actions: [],
-  };
-  runningFlows[id] = flowStatus;
+    overwriteArgInputs(flow, args);
+    for (let action of flow.actions) {
+      flowStatus.actions.push(
+        await apps.execute(pwd, action.appName, action.method, action.arguments)
+      );
+    }
 
-  overwriteArgInputs(flow, args);
-  for (let action of flow.actions) {
-    flowStatus.actions.push(
-      await apps.execute(pwd, action.appName, action.method, action.arguments)
-    );
+    let lastAction = flowStatus.actions[flowStatus.actions.length - 1];
+    delete runningFlows[id];
+    return lastAction;
+  } catch {
+    console.log("Run flow Id failed");
   }
-
-  let lastAction = flowStatus.actions[flowStatus.actions.length - 1];
-  delete runningFlows[id];
-  return lastAction;
 };
 
 const overwriteArgInputs = (object, args) => {
