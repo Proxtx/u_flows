@@ -26,6 +26,7 @@ const runFlowId = async (pwd, flow, args, id) => {
     runningFlows[id] = flowStatus;
 
     overwriteArgInputs(flow, args);
+    overwriteIdInputs(flow, id);
     for (let action of flow.actions) {
       flowStatus.actions.push(
         await apps.execute(pwd, action.appName, action.method, action.arguments)
@@ -45,6 +46,17 @@ const overwriteArgInputs = (object, args) => {
     let o = object[k];
     if (o.flowArgumentOverwrite) {
       o.input = args[o.index];
+    } else if (typeof o == "object") {
+      overwriteArgInputs(o, args);
+    }
+  }
+};
+
+const overwriteIdInputs = (object, id) => {
+  for (let k in object) {
+    let o = object[k];
+    if (o.flowIdOverwrite) {
+      o.id = id;
     } else if (typeof o == "object") {
       overwriteArgInputs(o, args);
     }
