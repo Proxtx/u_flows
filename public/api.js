@@ -58,7 +58,7 @@ const overwriteIdInputs = (object, id) => {
     if (o.flowIdOverwrite) {
       o.id = id;
     } else if (typeof o == "object") {
-      overwriteArgInputs(o, args);
+      overwriteIdInputs(o, args);
     }
   }
 };
